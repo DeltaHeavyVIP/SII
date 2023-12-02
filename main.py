@@ -3,11 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from zss import simple_distance, Node
 
-
 df = pd.read_excel('chai.xlsx', engine='openpyxl')
 df['Время заваривания (секунд)'] = df['Время заваривания (секунд)'].astype(int)
 
 tastes = np.array(df['Вкус'])
+tastes
 
 # функция, которая создает дерево вкусов
 def create_node(extra_node, object):
@@ -27,7 +27,6 @@ def create_node(extra_node, object):
         else:
             extra_node.addkid(Node(item))
 
-
 # Древесная мера близости по основному вкусовому оттенку
 objects = tastes
 matrix_tree_main = np.zeros((objects.shape[0], objects.shape[0]))
@@ -40,37 +39,72 @@ for i in range(objects.shape[0]):
         matrix_tree_main[i, j] = simple_distance(main_taste_node_1, main_taste_node_2)
 
 
-plt.imshow(matrix_tree_main, cmap='hot', interpolation='nearest')
-plt.colorbar()
-plt.show()
+class TeaCat:
+    def __init__(self, name, par) -> None:
+        self.name = name
+        self.par = par
+        self.children = []
+        if par is not None:
+            par.children.append(self)
+
+catRoot = TeaCat('root', None)
+catSublim = TeaCat('Растворимый', catRoot)
+catCustard = TeaCat('Заварной', catRoot)
+catHerbal = TeaCat('Травяной', catCustard)
+catTea = TeaCat('Чайный', catCustard)
+catGreen = TeaCat('ЗЕЛЕНЫЙ ЧАЙ', catTea)
+catRed = TeaCat('КРАСНЫЙ ЧАЙ', catTea)
+catWhite = TeaCat('БЕЛЫЙ ЧАЙ', catTea)
+catYellow = TeaCat('ЖЕЛТЫЙ ЧАЙ', catTea)
+catOolong = TeaCat('Улун', catTea)
+catPuer = TeaCat('Пуэр', catTea)
+catGaba = TeaCat('Габа', catTea)
+
+cats = {
+    'root': catRoot,
+    'Растворимый': catSublim,
+    'Заварной': catCustard,
+    'Травяной': catHerbal,
+    'Чайный': catTea,
+    'ЗЕЛЕНЫЙ ЧАЙ': catGreen,
+    'БЕЛЫЙ ЧАЙ': catWhite,
+    'ЖЕЛТЫЙ ЧАЙ': catYellow,
+    'КРАСНЫЙ ЧАЙ': catRed,
+    'Улун': catOolong,
+    'Пуэр': catPuer,
+    'Габа': catGaba,
+}
 
 
-kat_dict = {"Пуэр": 0, "Улун": 1, "Габа": 2, "ЗЕЛЕНЫЙ ЧАЙ": 3, "КРАСНЫЙ ЧАЙ": 4, "ЖЕЛТЫЙ ЧАЙ": 5, "БЕЛЫЙ ЧАЙ": 6,
-            "Травяной": 7}
-kat_matr = [
-    [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-    [1.0, 0.0, 1.0, 0.8, 0.7, 0.6, 0.5, 1.0],
-    [1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-    [1.0, 0.8, 1.0, 0.0, 0.7, 0.6, 0.3, 0.2],
-    [1.0, 0.7, 1.0, 0.7, 0.0, 0.9, 0.9, 0.9],
-    [1.0, 0.6, 1.0, 0.6, 0.9, 0.0, 0.5, 0.7],
-    [1.0, 0.5, 1.0, 0.3, 0.9, 0.5, 0.0, 0.3],
-    [1.0, 1.0, 1.0, 0.2, 0.9, 0.7, 0.3, 0.0],
-]
+def metricTree(a, b):
+    c1, c2 = cats[a], cats[b]
+
+    if c1.name == c2.name:
+        return 0
+
+    anc1 = {}
+    cur = c1
+    cntr = 0
+    while cur is not None:
+        anc1[cur.name] = cntr
+        cntr += 1
+        cur = cur.par
+
+    cur = c2
+    cntr = 0
+    while cur.name not in anc1.keys():
+        cntr += 1
+        cur = cur.par
+        if cur is None:
+            raise
+
+    return (cntr + anc1[cur.name]) / 4.0
 
 objects = np.array(df['Категория'])
 matrix_elem_kat = np.zeros((objects.shape[0], objects.shape[0]))
 for i in range(objects.shape[0]):
     for j in range(objects.shape[0]):
-        matrix_elem_kat[i, j] = kat_matr[kat_dict[objects[i]]][kat_dict[objects[j]]]
-
-
-# Построение матрицы с цветовыми значениями
-plt.imshow(matrix_elem_kat, cmap='hot', interpolation='nearest')
-plt.colorbar()
-plt.show()
-
-plt.show()
+        matrix_elem_kat[i, j] = metricTree(objects[i],objects[j])
 
 
 # Функция для расчета евклидовой меры близости между объектами по времени заваривания
@@ -81,30 +115,20 @@ def similarity_measure(obj1, obj2):
 objects = np.array(df['Время заваривания (секунд)'])
 matrix_evklid_time = np.zeros((objects.shape[0], objects.shape[0]))
 
-
 # Расчет значений меры для каждой пары объектов
 for i in range(objects.shape[0]):
     for j in range(objects.shape[0]):
         matrix_evklid_time[i, j] = similarity_measure(objects[i], objects[j])
 
-# Построение матрицы с цветовыми значениями
-plt.imshow(matrix_evklid_time, cmap='hot', interpolation='nearest')
-plt.colorbar()
-plt.show()
-
 # получаем массив объектов по температуре заваривания
 objects = np.array(df['Температура заваривания C'])
 matrix_evklid_temp = np.zeros((objects.shape[0], objects.shape[0]))
+
 
 # Расчет значений меры для каждой пары объектов
 for i in range(objects.shape[0]):
     for j in range(objects.shape[0]):
         matrix_evklid_temp[i, j] = similarity_measure(objects[i], objects[j])
-
-
-plt.imshow(matrix_evklid_temp, cmap='hot', interpolation='nearest')
-plt.colorbar()
-plt.show()
 
 # Функция для расчета меры близости по коэффициенту Жаккара
 def jaccard_similarity_measure(obj1, obj2):
@@ -115,7 +139,6 @@ def jaccard_similarity_measure(obj1, obj2):
     else:
         return (intersection / union)
 
-
 # получаем массив объектов по признаку веганский или нет (бинарная ассоциативная)
 objects = np.array(df['Есть ароматизатор'].replace(to_replace=['False', 'True'], value=['0', '1'])).astype(int)
 matrix_binary = np.zeros((objects.shape[0], objects.shape[0]))
@@ -123,9 +146,6 @@ for i in range(objects.shape[0]):
     for j in range(objects.shape[0]):
         matrix_binary[i, j] = jaccard_similarity_measure(objects[i], objects[j])
 
-plt.imshow(matrix_binary, cmap='hot', interpolation='nearest')
-plt.colorbar()
-plt.show()
 
 # создание общей меры близости
 recomender_matrix = matrix_tree_main + matrix_elem_kat + matrix_evklid_temp * 0.01 + matrix_evklid_time * 0.01 + matrix_binary * 2
@@ -135,52 +155,38 @@ plt.imshow(recomender_matrix, cmap='hot', interpolation='nearest')
 plt.colorbar()
 plt.show()
 
-def get_recommendations_by_likes(items, data=df):
-    # Разбиваем входную строку на отдельные наименования
-    titles = items.split(', ')
-    num_objects = len(titles)
+def get_recomendation(likes, dislikes, data):
+    def find(name):
+        return data.loc[data['Название'] == name]
 
-    # Индекс чая в датасете
-    indices = pd.Series(df.index, index=df['Название']).drop_duplicates()
+    recomendation = [0.5 for i in range(len(data))]
+    for i in likes:
+        dish_i = find(i).index[0]
+        recomendation[dish_i] = None
+        for j in range(len(recomender_matrix[dish_i])):
+            if recomendation[j] is None:
+                continue
 
-    # переменная для хранения общей близости
-    total_similarity = 0.0
+            recomendation[j] -= recomender_matrix[dish_i][j] / len(likes) * 0.5
 
-    for title in titles:
-        # Получение индекса чая
-        idx = indices[title]
-        # Расчет близости для одного объекта и добавление в общую
-        total_similarity = total_similarity + recomender_matrix[idx]
+    for i in dislikes:
+        dish_i = find(i).index[0]
+        recomendation[dish_i] = None
+        for j in range(len(recomender_matrix[dish_i])):
+            if recomendation[j] is None:
+                continue
 
-    # Расчет среднего значения близости
-    average_similarity = total_similarity / num_objects
+            recomendation[j] += recomender_matrix[dish_i][j] / len(dislikes) * 0.5
 
-    # Список чая по близости
-    sim_scores = list(enumerate(average_similarity))
+    result = data
+    result['Рекомендация'] = recomendation
+    result = result.sort_values(by=['Рекомендация'], ascending=False)
 
-    # Сортировка чая по близости
-    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=False)
+    return result
 
-    # Получение индексов наиболее похожего чая
-    chocolate_indices = [i[0] for i in sim_scores]
-    for title in titles:
-        idx = indices[title]
-        chocolate_indices.remove(idx)
 
-    # Фильтруем индексы
-    indices_from_filtered_df = (pd.Series(data.index, index=data['Название']).drop_duplicates()).tolist()
-    indices_after_filter = []
-    for index in chocolate_indices:
-        if index in indices_from_filtered_df:
-            indices_after_filter.append(index)
-
-    # Вывод рекомендаций
-    return data.loc[indices_after_filter]
-
-# рекомендация по лайкам
-#item = input("Введите название понравившегося чая:")
-recommendations = get_recommendations_by_likes('Шайцинь Юцзи Шэн')
-recommendations
+result = get_recomendation(['Шайцинь Юцзи Шэн', 'Путь Сердца'], ['Юцзи Гаоцзи Шу Ч'], df)
+result
 
 def do_fliter(recomendation, name=None, category=None, form=None, is_arom=None, temp=[None, None], time=[None, None],
               price=None, taste=None):
@@ -221,5 +227,5 @@ def do_fliter(recomendation, name=None, category=None, form=None, is_arom=None, 
 
     return recomendation
 
-result = do_fliter(recommendations,name='а', is_arom=False, temp=[0, 100])
+result = do_fliter(result, name='а', is_arom=True, temp=[0, 100])
 result
